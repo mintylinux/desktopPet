@@ -1,0 +1,65 @@
+# Maintainer: Chuck
+pkgname=desktoppet
+pkgver=1.4.0
+pkgrel=1
+pkgdesc='Animated interactive desktop pet (eSheep, Pingus and other characters) - native Linux/X11 port'
+arch=('x86_64')
+url='https://github.com/Adrianotiger/desktopPet'
+license=('custom')
+depends=('ffmpeg' 'libx11')
+makedepends=('dotnet-sdk-10.0' 'rsync')
+options=('!strip')
+source=()
+sha256sums=()
+
+# This PKGBUILD lives inside the repo itself (src/DesktopPet.Linux/PKGBUILD),
+# so we package straight from the enclosing checkout instead of a
+# downloadable tarball.
+_srcrepo="$startdir/../.."
+
+prepare() {
+  rm -rf "$srcdir/desktopPet"
+  mkdir -p "$srcdir/desktopPet"
+  # Exclude makepkg's own src/pkg build directories: they live inside
+  # src/DesktopPet.Linux (i.e. inside $_srcrepo itself), so copying them
+  # verbatim would try to copy the tree into itself.
+  rsync -a \
+    --exclude='src/DesktopPet.Linux/src/' \
+    --exclude='src/DesktopPet.Linux/pkg/' \
+    --exclude='src/DesktopPet.Linux/*.pkg.tar.*' \
+    --exclude='.git/' \
+    "$_srcrepo"/ "$srcdir/desktopPet"/
+}
+
+build() {
+  cd "$srcdir/desktopPet/src/DesktopPet.Linux"
+
+  export DOTNET_CLI_TELEMETRY_OPTOUT=1
+  export DOTNET_NOLOGO=1
+
+  dotnet publish -c Release -r linux-x64 --self-contained true \
+    -p:InvariantGlobalization=true \
+    -o "$srcdir/publish"
+}
+
+package() {
+  install -dm755 "$pkgdir/usr/lib/$pkgname"
+  cp -a "$srcdir/publish/." "$pkgdir/usr/lib/$pkgname/"
+  chmod 755 "$pkgdir/usr/lib/$pkgname/desktoppet"
+
+  install -dm755 "$pkgdir/usr/bin"
+  ln -s "/usr/lib/$pkgname/desktoppet" "$pkgdir/usr/bin/desktoppet"
+
+  install -Dm644 "$srcdir/desktopPet/Pets/esheep64/icon.png" "$pkgdir/usr/share/pixmaps/desktoppet.png"
+
+  install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/desktoppet.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Desktop Pet
+Comment=Animated interactive desktop pet
+Exec=desktoppet
+Icon=desktoppet
+Categories=Utility;
+Terminal=false
+EOF
+}

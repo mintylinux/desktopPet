@@ -68,7 +68,7 @@ namespace LocalData
         {
             try
             {
-                LocalSettings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(LocalFolder + "\\_settings_.json"));
+                LocalSettings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(LocalFolder + Path.DirectorySeparatorChar + "_settings_.json"));
             }
             catch (Exception ex)
             {
@@ -177,9 +177,9 @@ namespace LocalData
                 Xml = newXml;
 
                 var buffer = Encoding.UTF8.GetBytes(newXml);
-                File.Delete(LocalFolder + "\\animations.xml");
+                File.Delete(LocalFolder + Path.DirectorySeparatorChar + "animations.xml");
 
-                var f = File.Create(LocalFolder + "\\animations.xml");
+                var f = File.Create(LocalFolder + Path.DirectorySeparatorChar + "animations.xml");
                 f.Write(buffer, 0, buffer.Length);
                 f.Close();
 
@@ -201,13 +201,13 @@ namespace LocalData
         public void LoadXML()
         {
             var buffer = new Byte[1024 * 64];
-            if (!File.Exists(LocalFolder + "\\animations.xml"))
+            if (!File.Exists(LocalFolder + Path.DirectorySeparatorChar + "animations.xml"))
             {
-                var fs = File.Create(LocalFolder + "\\animations.xml");
+                var fs = File.Create(LocalFolder + Path.DirectorySeparatorChar + "animations.xml");
                 fs.Close();
             }
             Xml = "";
-            var f = File.OpenRead(LocalFolder + "\\animations.xml");
+            var f = File.OpenRead(LocalFolder + Path.DirectorySeparatorChar + "animations.xml");
             int bytesRead;
             do
             {
@@ -222,8 +222,8 @@ namespace LocalData
             Icon = newIcon;
 
             var buffer = Encoding.UTF8.GetBytes(newIcon);
-            File.Delete(LocalFolder + "\\icon.xml");
-            var f = File.Create(LocalFolder + "\\icon.xml");
+            File.Delete(LocalFolder + Path.DirectorySeparatorChar + "icon.xml");
+            var f = File.Create(LocalFolder + Path.DirectorySeparatorChar + "icon.xml");
             f.Write(buffer, 0, buffer.Length);
             f.Close();
         }
@@ -236,13 +236,13 @@ namespace LocalData
         private void LoadIcon()
         {
             var buffer = new Byte[1024 * 64];
-            if (!File.Exists(LocalFolder + "\\icon.xml"))
+            if (!File.Exists(LocalFolder + Path.DirectorySeparatorChar + "icon.xml"))
             {
-                var fs = File.Create(LocalFolder + "\\icon.xml");
+                var fs = File.Create(LocalFolder + Path.DirectorySeparatorChar + "icon.xml");
                 fs.Close();
             }
             Icon = "";
-            var f = File.OpenRead(LocalFolder + "\\icon.xml");
+            var f = File.OpenRead(LocalFolder + Path.DirectorySeparatorChar + "icon.xml");
             int bytesRead;
             do
             {
@@ -257,8 +257,8 @@ namespace LocalData
             Images = newImages;
 
             var buffer = Encoding.UTF8.GetBytes(newImages);
-            File.Delete(LocalFolder + "\\images.xml");
-            var f = File.Create(LocalFolder + "\\images.xml");
+            File.Delete(LocalFolder + Path.DirectorySeparatorChar + "images.xml");
+            var f = File.Create(LocalFolder + Path.DirectorySeparatorChar + "images.xml");
             f.Write(buffer, 0, buffer.Length);
             f.Close();
         }
@@ -271,15 +271,15 @@ namespace LocalData
         private void LoadImages()
         {
             var buffer = new Byte[1024 * 64];
-            if (!File.Exists(LocalFolder + "\\images.xml"))
+            if (!File.Exists(LocalFolder + Path.DirectorySeparatorChar + "images.xml"))
             {
-                var fs = File.Create(LocalFolder + "\\images.xml");
+                var fs = File.Create(LocalFolder + Path.DirectorySeparatorChar + "images.xml");
                 fs.Close();
             }
             Images = "";
             try
             {
-                var f = File.OpenRead(LocalFolder + "\\images.xml");
+                var f = File.OpenRead(LocalFolder + Path.DirectorySeparatorChar + "images.xml");
                 int bytesRead;
                 do
                 {
@@ -310,7 +310,7 @@ namespace LocalData
         public void SavePetXML(string xml, string petName, DateTime lastUpdate)
         {
             var buffer = Encoding.UTF8.GetBytes(xml);
-            var f = File.OpenWrite(LocalFolder + "\\pet_" + petName + ".xml");
+            var f = File.OpenWrite(LocalFolder + Path.DirectorySeparatorChar + "pet_" + petName + ".xml");
             f.Write(buffer, 0, buffer.Length);
             f.Close();
             DateTimeOffset dto = lastUpdate;
@@ -325,7 +325,7 @@ namespace LocalData
         {
             string retXML = "";
             var buffer = new Byte[1024 * 64];
-            var f = File.OpenRead(LocalFolder + "\\pet_" + petName + ".xml");
+            var f = File.OpenRead(LocalFolder + Path.DirectorySeparatorChar + "pet_" + petName + ".xml");
             int bytesRead;
             do
             {
@@ -345,9 +345,11 @@ namespace LocalData
                 watcherXml = new FileSystemWatcher
                 {
                     Path = LocalFolder,
-                    /* Watch for changes in LastAccess and LastWrite times, and 
-                       the renaming of files or directories. */
-                    NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                    /* Watch for actual content/name changes only. NotifyFilters.LastAccess must NOT be
+                       used here: on Linux, reading the file (which the change handler itself does)
+                       updates the access time and re-triggers this same watcher, causing an infinite
+                       reload loop. */
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
                     // Only watch text files.
                     Filter = "animations.xml"
                 };
@@ -371,9 +373,9 @@ namespace LocalData
                 watcherJson = new FileSystemWatcher
                 {
                     Path = LocalFolder,
-                    /* Watch for changes in LastAccess and LastWrite times, and 
-                       the renaming of files or directories. */
-                    NotifyFilter = NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
+                    /* Watch for actual content/name changes only (see comment in ListenOnXMLChanged
+                       about why NotifyFilters.LastAccess must not be used). */
+                    NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName,
                     // Only watch text files.
                     Filter = "_settings_.json"
                 };
@@ -440,7 +442,7 @@ namespace LocalData
             {
                 if (watcherJson != null) watcherJson.EnableRaisingEvents = false;
                 var output = JsonConvert.SerializeObject(LocalSettings);
-                File.WriteAllText(LocalFolder + "\\_settings_.json", output);
+                File.WriteAllText(LocalFolder + Path.DirectorySeparatorChar + "_settings_.json", output);
             }
             catch(Exception ex)
             {

@@ -134,6 +134,12 @@ DocProject/Help/html
 # Click-Once directory
 publish/
 
+# makepkg build artifacts from src/DesktopPet.Linux/PKGBUILD (scoped so this
+# doesn't accidentally match the real top-level src/ source tree)
+/src/DesktopPet.Linux/src/
+/src/DesktopPet.Linux/pkg/
+/src/DesktopPet.Linux/*.pkg.tar.*
+
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
